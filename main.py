@@ -6,6 +6,7 @@ from flask_cors import CORS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import database
 from apillm import client, MODEL
+from openai import OpenAI
 
 app = Flask(__name__)
 CORS(app)
@@ -22,8 +23,10 @@ text_splitter = RecursiveCharacterTextSplitter(
     separators=["\n\n", "\n", ". ", " ", ""]
 )
 
+openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
 def generar_embedding(texto):
-    resp = client.embeddings.create(
+    resp = openai_client.embeddings.create(
         model=EMBEDDING_MODEL,
         input=texto
     )
