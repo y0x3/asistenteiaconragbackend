@@ -12,19 +12,16 @@ CORS(app)
 
 database.crear_tablas()
 
-# --- Función para embeddings con OpenAI ---
-def generar_embedding(texto: str) -> list[float]:
+EMBEDDING_MODEL = os.environ.get("OPENROUTER_EMBEDDING_MODEL", "text-embedding-3-small")
+
+def generar_embedding(texto):
     resp = client.embeddings.create(
-        model="text-embedding-3-small",  # Modelo rápido y barato
+        model=EMBEDDING_MODEL,
         input=texto
     )
     return resp.data[0].embedding
 
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=100,
-    separators=["\n\n", "\n", ". ", " ", ""]
-)
+
 
 def _empty_index(dim: int = 1536):  # text-embedding-3-small devuelve 1536 dimensiones
     return faiss.IndexFlatL2(dim)
