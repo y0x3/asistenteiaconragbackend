@@ -6,7 +6,8 @@ from flask_cors import CORS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import database
 from apillm import client, MODEL
-from openai import OpenAI
+import requests
+
 
 app = Flask(__name__)
 CORS(app)
@@ -23,14 +24,19 @@ text_splitter = RecursiveCharacterTextSplitter(
     separators=["\n\n", "\n", ". ", " ", ""]
 )
 
-openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
 def generar_embedding(texto):
-    resp = openai_client.embeddings.create(
-        model=EMBEDDING_MODEL,
-        input=texto
-    )
-    return resp.data[0].embedding
+    url = "https://openrouter.ai/api/v1/embeddings"
+    headers = {
+        "Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": os.environ.get("OPENROUTER_EMBEDDING_MODEL", "openai/text-embedding-3-small"),
+        "input": texto
+    }
+    resp = requests.post(url, headers=headers, json=data)
+    resp.raise_for_status()
+    return resp.json()["data"][0]["embedding"]
 
 def _empty_index(dim: int = 1536):  # text-embedding-3-small devuelve 1536 dimensiones
     return faiss.IndexFlatL2(dim)
