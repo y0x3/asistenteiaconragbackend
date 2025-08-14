@@ -5,16 +5,18 @@ API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if not API_KEY:
     raise RuntimeError("Falta OPENROUTER_API_KEY en variables de entorno...")
 
+REFERER = os.environ.get("APP_URL", "http://localhost:5000")
+
+MODEL = os.environ.get("OPENROUTER_MODEL", "mistralai/mistral-7b-instruct")
+
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=API_KEY,
     default_headers={
-        "HTTP-Referer": "http://localhost:5000",
+        "HTTP-Referer": REFERER,
         "X-Title": "prueba_tecnica_activamente_backend",
     },
 )
-
-MODEL = os.environ.get("OPENROUTER_MODEL", "mistralai/mistral-7b-instruct")
 
 def generar_respuesta(prompt: str) -> str:
     response = client.chat.completions.create(
