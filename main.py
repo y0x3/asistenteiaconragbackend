@@ -18,7 +18,6 @@ CORS(app, resources={r"/*": {
     "allow_headers": ["Content-Type", "Authorization"]
 }})
 
-
 # Asegura que las tablas existan
 database.crear_tablas()
 
@@ -30,14 +29,11 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 # --------- Embeddings locales con SentenceTransformer (HF) ---------
-# Usa un modelo ligero y gratuito (dim=384)
 embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-
 
 def _empty_index(dim: int = 384):
     """Crea un índice FAISS vacío con la dimensión adecuada."""
     return faiss.IndexFlatL2(dim)
-
 
 def crear_indice_faiss():
     """Construye/rehace el índice FAISS a partir de los documentos guardados."""
@@ -50,17 +46,14 @@ def crear_indice_faiss():
     if not chunks:
         return _empty_index(), []
 
-    # Embeddings de todos los chunks de documentos
     embeddings = embedding_model.encode(chunks).astype('float32')
     dim = embeddings.shape[1]
     index = faiss.IndexFlatL2(dim)
     index.add(np.array(embeddings))
     return index, chunks
 
-
-# Construye el índice una vez al arrancar
+# Construye el índice al arrancar
 index, doc_chunks = crear_indice_faiss()
-
 
 @app.route("/add_doc", methods=["POST"])
 def add_doc():
@@ -74,22 +67,20 @@ def add_doc():
     else:
         return jsonify({"status": "No hay texto para agregar"}), 400
 
-
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
     mensaje = data.get("mensaje", "")
-    usuario_id = data.get("usuario_id")
     conversacion_id = data.get("conversacion_id")
 
     # Crea conversación si no viene id
     if not conversacion_id:
-        conversacion_id = database.crear_conversacion(usuario_id, titulo="Nueva conversación")
+        conversacion_id = database.crear_conversacion("Nueva conversación")
 
     # Guarda mensaje del usuario
     database.guardar_mensaje(conversacion_id, "usuario", mensaje)
 
-    # Trocea y embebe la consulta; usa el primer chunk para recuperar contexto
+    # Trocea y embebe la consulta
     chunks = text_splitter.split_text(mensaje)
     query_emb = embedding_model.encode(chunks).astype('float32') if chunks else np.array([])
 
@@ -109,7 +100,6 @@ def chat():
             f"Pregunta: {mensaje}"
         )
 
-        # LLM vía OpenRouter (apillm configura el cliente y el modelo)
         response = client.chat.completions.create(
             model=MODEL,
             messages=[
@@ -123,7 +113,7 @@ def chat():
     except Exception as e:
         respuesta = f"Error al generar respuesta: {str(e)}"
 
-    # Guarda respuesta y devuelve payload
+    # Guarda respuesta
     database.guardar_mensaje(conversacion_id, "ia", respuesta)
 
     return jsonify({
@@ -135,14 +125,12 @@ def chat():
         "respuesta_generada": respuesta,
     })
 
-
-@app.route("/conversaciones/<int:usuario_id>", methods=["GET"])
-def get_conversaciones(usuario_id):
-    conversaciones = database.obtener_conversaciones(usuario_id)
+@app.route("/conversaciones", methods=["GET"])
+def get_conversaciones():
+    conversaciones = database.obtener_conversaciones()
     return jsonify([
         {"id": c[0], "titulo": c[1], "fecha": c[2]} for c in conversaciones
     ])
-
 
 @app.route("/mensajes/<int:conversacion_id>", methods=["GET"])
 def get_mensajes(conversacion_id):
@@ -150,7 +138,6 @@ def get_mensajes(conversacion_id):
     return jsonify([
         {"id": m[0], "remitente": m[1], "texto": m[2], "fecha": m[3]} for m in mensajes
     ])
-
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -161,11 +148,9 @@ def upload():
     index, doc_chunks = crear_indice_faiss()
     return jsonify({"status": "Documento agregado"})
 
-
-@app.route("/health", methods=["GET"])  # ruta simple para comprobar que corre
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({"ok": True})
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
