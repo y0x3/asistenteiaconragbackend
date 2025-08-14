@@ -9,7 +9,8 @@ import database
 from apillm import client, MODEL
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://asistenteiarag.vercel.app"])
+
 
 # Asegura que las tablas existan
 database.crear_tablas()
