@@ -7,6 +7,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 import database
 from apillm import client, MODEL
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+print("API Key cargada:", os.environ.get("OPENROUTER_API_KEY"))
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {
