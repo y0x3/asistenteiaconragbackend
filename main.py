@@ -27,44 +27,28 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 
-def generar_embedding(texto: str) -> list:
-    """Genera un embedding usando OpenRouter (sin SDK de OpenAI).
-    Incluye logs claros si la API responde algo no-JSON.
-    """
-    if not OPENROUTER_API_KEY:
-        raise RuntimeError("OPENROUTER_API_KEY no está definido en variables de entorno.")
-
+def generar_embedding(texto):
     url = "https://openrouter.ai/api/v1/embeddings"
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
         "Content-Type": "application/json",
-        # Estos dos ayudan a OpenRouter a identificar tu app (algunos planes lo requieren)
-        "HTTP-Referer": APP_URL,
-        "X-Title": "prueba_tecnica_activamente_backend",
+        # Estas dos son IMPORTANTES para producción
+        "HTTP-Referer": os.environ.get("APP_URL", "https://asistenteiaconragbackend.onrender.com"),
+        "X-Title": "Asistente IA con RAG"
     }
-    data = {"model": EMBEDDING_MODEL, "input": texto}
-
-    resp = requests.post(url, headers=headers, json=data, timeout=30)
-
-    # Si no es 200, lanza error con detalle para que aparezca en logs de Render
-    if resp.status_code != 200:
-        raise ValueError(f"Error en embeddings: {resp.status_code} - {resp.text[:500]}")
+    payload = {
+        "model": os.environ.get("OPENROUTER_EMBEDDING_MODEL", "openai/text-embedding-3-small"),
+        "input": texto
+    }
+    resp = requests.post(url, headers=headers, json=payload)
 
     try:
-        payload = resp.json()
-    except Exception:
-        # Log de ayuda si la API devuelve HTML/texto
-        snippet = resp.text[:500]
-        raise ValueError(f"Respuesta embeddings no-JSON (HTTP 200): {snippet}")
-
-    if isinstance(payload, dict) and "error" in payload:
-        raise ValueError(f"OpenRouter embeddings error: {payload['error']}")
-
-    try:
-        return payload["data"][0]["embedding"]
+        resp.raise_for_status()
+        data = resp.json()
+        return data["data"][0]["embedding"]
     except Exception as e:
-        raise ValueError(f"Formato inesperado en respuesta de embeddings: {payload}") from e
-
+        print(f"[WARN] Falla embedding de un chunk: {e}, Respuesta: {resp.text[:200]}")
+        return None
 
 def _empty_index(dim: int = 1536):
     """Index vacío por defecto con 1536 dims (text-embedding-3-small)."""
