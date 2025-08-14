@@ -13,11 +13,10 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=API_KEY,
     default_headers={
-        "Referer": REFERER,  # <-- sin HTTP-
+        "HTTP-Referer": REFERER,
         "X-Title": "prueba_tecnica_activamente_backend",
     },
 )
-
 
 def generar_respuesta(prompt: str) -> str:
     response = client.chat.completions.create(
