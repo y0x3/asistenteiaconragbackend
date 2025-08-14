@@ -12,7 +12,15 @@ CORS(app)
 
 database.crear_tablas()
 
+# Configuración del modelo de embeddings
 EMBEDDING_MODEL = os.environ.get("OPENROUTER_EMBEDDING_MODEL", "text-embedding-3-small")
+
+# Divisor de texto para partir documentos en trozos
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=100,
+    separators=["\n\n", "\n", ". ", " ", ""]
+)
 
 def generar_embedding(texto):
     resp = client.embeddings.create(
@@ -20,8 +28,6 @@ def generar_embedding(texto):
         input=texto
     )
     return resp.data[0].embedding
-
-
 
 def _empty_index(dim: int = 1536):  # text-embedding-3-small devuelve 1536 dimensiones
     return faiss.IndexFlatL2(dim)
