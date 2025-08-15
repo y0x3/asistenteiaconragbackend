@@ -14,14 +14,7 @@ print("API Key cargada:", os.environ.get("OPENROUTER_API_KEY"))
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {
-    "origins": [
-        "https://asistenteiarag.vercel.app",
-        "http://127.0.0.1:5500"
-    ],
-    "methods": ["GET", "POST", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"]
-}})
+CORS(app)
 
 # Asegura que las tablas existan
 database.crear_tablas()
